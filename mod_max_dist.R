@@ -100,10 +100,6 @@ vessels_ui <- function(id, note) {
     )
 }
 
-# total distance of the ship
-# average distance of the ship
-# avg speed compared to avg in the group
-# size of the boat comparing to the average in a group
 
 vessels_server <- function(id) {
   moduleServer(
@@ -125,27 +121,9 @@ vessels_server <- function(id) {
       output$n_type_ships <- renderText({
         value = get_stat(data_by_ship[ship_type == input$v_type_imt,], "SHIP_ID", uniqueN)
         paste("Number of ships:", value)
-        # get_stat(data_by_ship[ship_type == input$v_type_imt,], "id", uniqueN)
       })
       
-      # output$avg_speed <- renderText({
-      #   req(input$v_imt)
-      #   
-      #   name = data_by_ship[SHIP_ID==input$v_imt, ]$SHIPNAME
-      #   country = data_by_ship[SHIP_ID==input$v_imt, ]$FLAG
-      #   max_speed = data_by_ship[SHIP_ID==input$v_imt, ]$MAX_SPEED 
-      #   avg_speed = data_by_ship[SHIP_ID==input$v_imt, ]$AVG_SPEED
-      #   tot_dist = data_by_ship[SHIP_ID==input$v_imt, ]$TOT_DIST 
-      #   stand_time = data_by_ship[SHIP_ID==input$v_imt, ]$STAND_TIME
-      #   
-      #   paste("Ship name:", name, "\n",
-      #         "Ship country:", country, "\n", 
-      #         "Max speed:", max_speed, "\n",
-      #         "Average speed:", avg_speed, "\n",
-      #         "Total distance:", tot_dist, "\n",
-      #         "Standing time:", stand_time)
-      # })
-      
+
       output$sh_name <- renderText({
         req(input$v_imt)
         sh_name = data_by_ship[SHIP_ID==input$v_imt, ]$SHIPNAM
