@@ -1,6 +1,5 @@
 library(shiny)
 library(shiny.semantic)
-library(shinydashboard)
 library(leaflet)
 library(data.table)
 
