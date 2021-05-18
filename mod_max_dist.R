@@ -20,6 +20,7 @@ info_box <- function(info, icon, color){
   )
 }
 
+
 get_stat <- function(data, column, stat, ...) {
   if(column %in% names(data)){
     stat <- do.call(stat, list(data[[column]]))
@@ -37,27 +38,54 @@ vessels_ui <- function(id, note) {
     sidebar_layout(
       sidebar_panel(
         selectInput(ns("v_type_imt"), 
-                    "Vessel types",
+                    "Ship type",
                     choices = vessel_types,
                     selected = vessel_types[1]),
-        br(),
-        uiOutput(ns("v_imt_UI")),
         br(),
         info_box(textOutput(
           ns("n_type_ships")),
           icon = "ship",
           color = "green"),
         br(),
+        
+        uiOutput(ns("v_imt_UI")),
+        br(),
+
         info_box(textOutput(
-          ns("n_avg_speed")),
+          ns("sh_name")),
           icon = "anchor",
           color = "green"),
         br(),
-        # info_box(textOutput(
-        #   ns("n_type_ships")),
-        #   icon = "ship",
-        #   color = "green"),
-        # br(),
+        
+        info_box(textOutput(
+          ns("sh_country")),
+          icon = "anchor",
+          color = "green"),
+        br(),
+        
+        info_box(textOutput(
+          ns("max_speed")),
+          icon = "anchor",
+          color = "green"),
+        br(),
+        
+        info_box(textOutput(
+          ns("avg_speed")),
+          icon = "anchor",
+          color = "green"),
+        br(),
+        
+        info_box(textOutput(
+          ns("stand_time")),
+          icon = "anchor",
+          color = "green"),
+        br(),
+        
+        info_box(textOutput(
+          ns("tot_dist")),
+          icon = "anchor",
+          color = "green"),
+        br(),
         
         width = 4,
         fluid = T
@@ -87,9 +115,9 @@ vessels_server <- function(id) {
       output$v_imt_UI <- renderUI({
         ns <- NS(id)
         req(input$v_type_imt)
-        choices <- data_by_ship[ship_type == input$v_type_imt,]$SHIPNAME
+        choices <- data_by_ship[ship_type == input$v_type_imt,]$SHIP_ID
         selectInput(ns("v_imt"),
-                    "Vessel name",
+                    "Ship ID",
                     choices = choices,
                     selected = choices[1])
       })
@@ -101,31 +129,68 @@ vessels_server <- function(id) {
         # get_stat(data_by_ship[ship_type == input$v_type_imt,], "id", uniqueN)
       })
       
-      output$n_avg_speed <- renderText({
+      # output$avg_speed <- renderText({
+      #   req(input$v_imt)
+      #   
+      #   name = data_by_ship[SHIP_ID==input$v_imt, ]$SHIPNAME
+      #   country = data_by_ship[SHIP_ID==input$v_imt, ]$FLAG
+      #   max_speed = data_by_ship[SHIP_ID==input$v_imt, ]$MAX_SPEED 
+      #   avg_speed = data_by_ship[SHIP_ID==input$v_imt, ]$AVG_SPEED
+      #   tot_dist = data_by_ship[SHIP_ID==input$v_imt, ]$TOT_DIST 
+      #   stand_time = data_by_ship[SHIP_ID==input$v_imt, ]$STAND_TIME
+      #   
+      #   paste("Ship name:", name, "\n",
+      #         "Ship country:", country, "\n", 
+      #         "Max speed:", max_speed, "\n",
+      #         "Average speed:", avg_speed, "\n",
+      #         "Total distance:", tot_dist, "\n",
+      #         "Standing time:", stand_time)
+      # })
+      
+      output$sh_name <- renderText({
         req(input$v_imt)
-        
-        name = data_by_ship[SHIPNAME==input$v_imt, ]$SHIPNAME
-        country = data_by_ship[SHIPNAME==input$v_imt, ]$FLAG
-        max_speed = data_by_ship[SHIPNAME==input$v_imt, ]$MAX_SPEED 
-        avg_speed = data_by_ship[SHIPNAME==input$v_imt, ]$AVG_SPEED
-        tot_dist = data_by_ship[SHIPNAME==input$v_imt, ]$TOT_DIST 
-        stand_time = data_by_ship[SHIPNAME==input$v_imt, ]$STAND_TIME
-        
-        paste("Ship name:", name, "\n",
-              "Ship country:", country, "\n", 
-              "Max speed:", max_speed, "\n",
-              "Average speed:", avg_speed, "\n",
-              "Total distance:", tot_dist, "\n",
-              "Standing time:", stand_time)
+        sh_name = data_by_ship[SHIP_ID==input$v_imt, ]$SHIPNAM
+        paste("Ship name:", sh_name)
+      })
+      
+      output$sh_country <- renderText({
+        req(input$v_imt)
+        sh_country = data_by_ship[SHIP_ID==input$v_imt, ]$FLAG
+        paste("Ship country:", sh_country)
+      })
+      
+      
+      output$max_speed <- renderText({
+        req(input$v_imt)
+        max_speed = data_by_ship[SHIP_ID==input$v_imt, ]$MAX_SPEED
+        paste("Max speed:", max_speed, "\n")
+      })
+      
+      output$avg_speed <- renderText({
+        req(input$v_imt)
+        avg_speed = data_by_ship[SHIP_ID==input$v_imt, ]$AVG_SPEED
+        paste("Average speed:", avg_speed)
+      })
+      
+      output$stand_time <- renderText({
+        req(input$v_imt)
+        stand_time = data_by_ship[SHIP_ID==input$v_imt, ]$STAND_TIME
+        paste("Stand time:", stand_time)
+      })
+      
+      output$tot_dist <- renderText({
+        req(input$v_imt)
+        tot_dist = data_by_ship[SHIP_ID==input$v_imt, ]$TOT_DIST 
+        paste("Total distance:", tot_dist)
       })
       
       # Generate and render the note with the distance
       get_note <- reactive({
         req(input$v_type_imt, input$v_imt)
         
-        distance =  round(data_by_ship[ship_type == input$v_type_imt & SHIPNAME == input$v_imt,]$DIST_M, 2)
-        start = data_by_ship[ship_type == input$v_type_imt & SHIPNAME == input$v_imt,]$DATETIME
-        stop = data_by_ship[ship_type == input$v_type_imt & SHIPNAME == input$v_imt,]$DATETIME2
+        distance =  round(data_by_ship[ship_type == input$v_type_imt & SHIP_ID == input$v_imt,]$DIST_M, 2)
+        start = data_by_ship[ship_type == input$v_type_imt & SHIP_ID == input$v_imt,]$DATETIME
+        stop = data_by_ship[ship_type == input$v_type_imt & SHIP_ID == input$v_imt,]$DATETIME2
         
         paste(input$v_imt, "-", distance, "meters between", start ,"and" , stop)
       })
@@ -134,7 +199,7 @@ vessels_server <- function(id) {
       # Generate leaflet map
       get_map <- reactive({
         req(input$v_type_imt, input$v_imt)
-        leaflet(data = data_by_ship[ship_type == input$v_type_imt & SHIPNAME == input$v_imt]) %>% 
+        leaflet(data = data_by_ship[ship_type == input$v_type_imt & SHIP_ID == input$v_imt]) %>% 
           addTiles() %>% 
           addMarkers(~LON, ~LAT, label = ~paste("Start stamp at ", as.character(DATETIME))) %>% 
           addMarkers(~LON2, ~LAT2,  label = ~paste("Stop stamp at", as.character(DATETIME2), "after", as.character(difftime(DATETIME2, DATETIME)), "sec."))
