@@ -74,7 +74,7 @@ names(vessels) <- unique(raw_data$ship_type)
 
 # =====================================================================================================================================
 raw_data <- fread(unzip("data/ships_04112020.zip"), encoding = "UTF-8")
-str(raw_data)
+# str(raw_data)
 raw_data <- unique(raw_data)
 
 # Correct timestamp format
@@ -85,103 +85,82 @@ if(class(raw_data$DATETIME)[1]=="character"){
 }
 
 # Create supplemental id
-raw_data[,id:=paste0(SHIPNAME, "_", ship_type, "_", FLAG, "_", LENGTH)]
+# raw_data[,id:=paste0(SHIPNAME, "_", ship_type, "_", FLAG, "_", LENGTH)]
 
 # Order the data by the ship and timestamp
-setorder(raw_data, id, DATETIME) # ship_type, SHIPNAME, FLAG, LENGTH
+setorder(raw_data, SHIP_ID, DATETIME) # ship_type, SHIPNAME, FLAG, LENGTH
 
-data2 <- raw_data[, .(SHIP_ID=SHIP_ID,
-                      LAT=LAT,
-                      LON=LON,
-                      SPEED=SPEED,
-                      DWT=DWT,
-                      LENGTH=LENGTH,
-                      WIDTH=WIDTH,
-                      DESTINATION=DESTINATION,
-                      DATETIME=DATETIME,
-                      LAT2=data.table::shift(LAT, type="lead"),
-                      LON2=data.table::shift(LON, type="lead"),
-                      DATETIME2=data.table::shift(DATETIME, type="lead")),
-                  by=c("id")][,c("SHIPNAME", "ship_type", "FLAG", "LENGTH") := tstrsplit(id, "_", fixed=TRUE)]
+data_dist <- raw_data[, .(LAT=LAT,
+                          LON=LON,
+                          SPEED=SPEED,
+                          SHIPNAME=SHIPNAME,
+                          ship_type=ship_type,
+                          FLAG=FLAG,
+                          DWT=DWT,
+                          LENGTH=LENGTH,
+                          WIDTH=WIDTH,
+                          DATETIME=DATETIME,
+                          LAT2=data.table::shift(LAT, type="lead"),
+                          LON2=data.table::shift(LON, type="lead"),
+                          DATETIME2=data.table::shift(DATETIME, type="lead")),
+                      by="SHIP_ID"]
 
-distances <- raster::pointDistance(data2[, c("LON", "LAT")],
-                                   data2[, c("LON2", "LAT2")],
+distances <- raster::pointDistance(data_dist[, c("LON", "LAT")],
+                                   data_dist[, c("LON2", "LAT2")],
                                    lonlat=TRUE,
                                    allpairs=FALSE)
-data2[,DIST_M:=distances]
-data2 <- unique(data2)
-
+data_dist[,DIST_M:=distances]
+data_dist <- unique(data_dist)
 
 # Prepare data agregates
 
 # ship type level
-data_types <- data2[, .(MED_LENGTH=median(as.numeric(LENGTH), na.rm=TRUE),
-                       MED_WIDTH=median(as.numeric(WIDTH), na.rm=TRUE),
-                       MED_DWT=median(as.numeric(DWT), na.rm=TRUE), 
-                       AVG_LENGTH=round(mean(LENGTH, na.rm=TRUE), 2),
-                       AVG_WIDTH=round(mean(WIDTH, na.rm=TRUE), 2),
-                       AVG_DWT=round(mean(DWT, na.rm=TRUE), 2),
-                       AVG_SPEED=round(mean(SPEED, na.rm=TRUE), 2),
-                       MAX_SPEED=round(max(SPEED, na.rm=TRUE), 2),
-                       AVG_STAND_TIME=round(sum(ifelse(DIST_M==0, difftime(DATETIME2, DATETIME), 0), na.rm = T)/uniqueN(id), 2)), 
-                   by="ship_type"]
-saveRDS(data_types, "data/data_types.RDS")
+data_by_type <- data_dist[, .(MED_LENGTH=median(as.numeric(LENGTH), na.rm=TRUE),
+                               MED_WIDTH=median(as.numeric(WIDTH), na.rm=TRUE),
+                               MED_DWT=median(as.numeric(DWT), na.rm=TRUE),
+                               AVG_LENGTH=round(mean(LENGTH, na.rm=TRUE), 2),
+                               AVG_WIDTH=round(mean(WIDTH, na.rm=TRUE), 2),
+                               AVG_DWT=round(mean(DWT, na.rm=TRUE), 2),
+                               AVG_SPEED=round(mean(SPEED, na.rm=TRUE), 2),
+                               MAX_SPEED=round(max(SPEED, na.rm=TRUE), 2),
+                               AVG_STAND_TIME=round(sum(ifelse(DIST_M==0, difftime(DATETIME2, DATETIME), 0), na.rm = T)/uniqueN(SHIP_ID), 2)),
+                           by="ship_type"]
+saveRDS(data_by_type, "data/data_by_type.RDS")
 
 # country level
-data_country <- data2[, .(MED_LENGTH=median(as.numeric(LENGTH), na.rm=TRUE),
-                         MED_WIDTH=median(as.numeric(WIDTH), na.rm=TRUE),
-                         MED_DWT=median(as.numeric(DWT), na.rm=TRUE), 
-                         AVG_LENGTH=round(mean(LENGTH, na.rm=TRUE), 2),
-                         AVG_WIDTH=round(mean(WIDTH, na.rm=TRUE), 2),
-                         AVG_DWT=round(mean(DWT, na.rm=TRUE), 2),
-                         AVG_SPEED=round(mean(SPEED, na.rm=TRUE), 2),
-                         MAX_SPEED=round(max(SPEED, na.rm=TRUE), 2),
-                         AVG_STAND_TIME=round(sum(ifelse(DIST_M==0, difftime(DATETIME2, DATETIME), 0), na.rm = T)/uniqueN(id), 2)), 
-                     by="FLAG"]
-saveRDS(data_country, "data/data_country.RDS")
+data_by_country <- data_dist[, .(MED_LENGTH=median(as.numeric(LENGTH), na.rm=TRUE),
+                              MED_WIDTH=median(as.numeric(WIDTH), na.rm=TRUE),
+                              MED_DWT=median(as.numeric(DWT), na.rm=TRUE),
+                              AVG_LENGTH=round(mean(LENGTH, na.rm=TRUE), 2),
+                              AVG_WIDTH=round(mean(WIDTH, na.rm=TRUE), 2),
+                              AVG_DWT=round(mean(DWT, na.rm=TRUE), 2),
+                              AVG_SPEED=round(mean(SPEED, na.rm=TRUE), 2),
+                              MAX_SPEED=round(max(SPEED, na.rm=TRUE), 2),
+                              AVG_STAND_TIME=round(sum(ifelse(DIST_M==0, difftime(DATETIME2, DATETIME), 0), na.rm = T)/uniqueN(SHIP_ID), 2)),
+                          by="FLAG"]
+saveRDS(data_by_country, "data/data_by_country.RDS")
 
-
-data_ships <- data2[, .(SHIP_ID=unique(SHIP_ID),
-                        WIDTH=unique(WIDTH),
-                        DWT=unique(DWT),
-                        AVG_SPEED=round(mean(SPEED, na.rm=TRUE),2),
-                        MAX_SPEED=round(max(SPEED, na.rm=TRUE),2),
-                        TOT_DIST=round(sum(DIST_M, na.rm = T), 2),
-                        STAND_TIME=round(sum(ifelse(DIST_M==0, difftime(DATETIME2, DATETIME), 0), na.rm = T), 2)),
-                    by=c("id")][,c("SHIPNAME", "ship_type", "FLAG", "LENGTH") := tstrsplit(id, "_", fixed=TRUE)]
-columns <- names(data_ships)[c(1:2,9:12,3:8)]
-data_ships <- data_ships[,..columns]
-saveRDS(data_ships, "data/data_ships.RDS")
-
-data_ships[,.N, .(SHIPNAME, ship_type)][N>1,]$SHIPNAME
-data_ships[SHIPNAME %in% data_ships[,.N, .(SHIPNAME, ship_type)][N>1,]$SHIPNAME,]
-
-# # Check the viability of the data
-# max_dist = data2[which.max(DIST_M),]
-# which_max_dist <- which(data2$ship_type==max_dist$ship_type & data2$SHIPNAME==max_dist$SHIPNAME & data2$DATETIME==max_dist$DATETIME)
-# data2[c(which_max_dist-1, which_max_dist, which_max_dist+1),]
-
-# test na jak input jest wektorem 
 
 # Order according to the length, and secondary to the time
-# setorder(data2, ship_type, SHIPNAME, FLAG, LENGTH,  DIST_M, DATETIME)
-setorder(data2, id, DIST_M, DATETIME, na.last = F)
-
-data2[id=="KAROLI_Cargo_MT_100",]
-data2[id=="REDUT_Tug_RU_28",]
-data2[id==data2$id[1],]
+setorder(data_dist, SHIP_ID, DIST_M, DATETIME, na.last = F)
 
 # Select records with longest distance and latest
-data_final <- data2[,.SD[.N], by=.(ship_type, SHIPNAME, FLAG, LENGTH)]
+data_by_ship <- data_dist[,.SD[.N], by="SHIP_ID"]
+data_by_ship[,TIME_LEN:=difftime(DATETIME2, DATETIME, units = "auto")]
 
-summary(data_final$DIST_M, na.rm=T)
-# data_final[,id:=paste0(SHIPNAME, "_", ship_type, "_", FLAG, "_", LENGTH)]
-data_final[,TIME_LEN:=difftime(DATETIME2, DATETIME, units = "auto")]
-data_final[,TIME_UNIT:=units(TIME_LEN)]
+# Prapare average values by ship
+data_by_ship2 <- data_dist[, .(AVG_SPEED=round(mean(SPEED, na.rm=TRUE),2),
+                              MAX_SPEED=round(max(SPEED, na.rm=TRUE),2),
+                              TOT_DIST=round(sum(DIST_M, na.rm = T), 2),
+                              STAND_TIME=round(sum(ifelse(DIST_M==0, difftime(DATETIME2, DATETIME), 0), na.rm = T), 2)),
+                          by="SHIP_ID"]
+data_by_ship <- merge(data_by_ship, data_by_ship2, by="SHIP_ID")
+
+# Check for duplicated
+data_by_ship[SHIPNAME %in% data_by_ship[,.N, .(SHIPNAME, ship_type)][N>1,]$SHIPNAME,]
 
 # Save the data
-saveRDS(data_final, "data/prep_data.RDS")
-
+saveRDS(data_by_ship, "data/data_by_ship.RDS")
 
 
 # =====================================================================================================================================
